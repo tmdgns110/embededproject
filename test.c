@@ -33,7 +33,7 @@
 *****************************************************************************
 */
 #define TASK_STK_SIZE			512
-#define testPrior				10
+#define Prior					20
 #define N_MSG					100
 
 #define LEFT					0
@@ -61,6 +61,7 @@ OS_STK		CalStk[TASK_STK_SIZE];
 OS_STK		LogStk[TASK_STK_SIZE];
 OS_STK		AlertStk[TASK_STK_SIZE];
 OS_STK		InitStk[TASK_STK_SIZE];
+OS_STK		InitVarStk[TASK_STK_SIZE];
 
 //The part of event. There are two types of events: 
 //semaphores and message queues. 
@@ -118,7 +119,7 @@ void Calc(void *pdata);
 void LogTask(void*pdata);
 void AlertTask(void*pdata);
 void InitTask(void*pdata);
-
+void InitAllVar(void*data);
 /*
 *****************************************************************************
                                     MAIN
@@ -127,7 +128,6 @@ void InitTask(void*pdata);
 					task creation, and OS startup.
 *****************************************************************************
 */
-
 int main (void)
 {
 	OSInit();
@@ -143,102 +143,102 @@ int main (void)
 	return 0;
 }
 
-
-
 /*
 *****************************************************************************
                                   Function - 1
-    Description :
+    Description :	This task is a task that creates several tasks. 
+					These tasks include tasks that generate wind, 
+					tasks that create atmospheric substances, 
+					and tasks that update structures.
 *****************************************************************************
 */
 void TaskCreate(void) {
-
-	/*
-		1.화면 초기화
-		2.바람 방향/세기를 랜덤으로 생성하는 태스크
-		3.초마다 랜덤으로 대기 값을 생성하는 태스크
-		4.구조체를 업데이트하는 태스크
-		5.선형식 업데이틑 하는 태스크(값계산)
-		6.구조체 정보를 화면에 업데이트 하는 태스크
-		7. 사용자로부터 값을 입력받는 태스크
-		8.
-	*/
-
 	sem = OSSemCreate(1);
 	OSTaskCreate(
 		generateWind,
 		NULL,
 		&windStk[TASK_STK_SIZE-1],
-		testPrior
+		Prior
 	);
 	OSTaskCreate(
 		generateAirPollution,
 		NULL,
 		&AirPollutionStk[TASK_STK_SIZE-1],
-		testPrior+1
+		Prior+1
 	);
 	OSTaskCreate(
 		updateStructure,
 		NULL,
 		&UptStk[TASK_STK_SIZE-1],
-		testPrior-1
+		Prior-1
 	);
 	OSTaskCreate(
 		taskDisplay,
 		NULL,
 		&DispStk[TASK_STK_SIZE-1],
-		testPrior-3
+		Prior-3
 	);
 	OSTaskCreate(
 		Calc,
 		NULL,
 		&CalStk[TASK_STK_SIZE - 1],
-		testPrior -4
+		Prior-4
 	);
 	OSTaskCreate(
 		LogTask,
 		NULL,
 		&LogStk[TASK_STK_SIZE - 1],
-		testPrior - 5
+		Prior-5
 	);
 	OSTaskCreate(
 		AlertTask,
 		NULL,
 		&LogStk[TASK_STK_SIZE - 1],
-		testPrior - 2
+		Prior-2
 		);
 	OSTaskCreate(
 		testRoutine,
 		NULL,
 		&testStk[TASK_STK_SIZE - 1],
-		testPrior-6
+		Prior-6
 	);
 	OSTaskCreate(
 		InitTask,
 		NULL,
 		&InitStk[TASK_STK_SIZE - 1],
-		testPrior - 7
-		);
+		Prior-7
+	);
+	OSTaskCreate(
+		InitAllVar,
+		NULL,
+		&InitVarStk[TASK_STK_SIZE - 1],
+		Prior+8
+	);
 }
-
 
 /*
 *****************************************************************************
-                                  Function - 1
-    Description :
+                     Function - TaskStartDispInit
+    Description :	This function initializes the display layout and 
+					updates the display according to the value 
+					of the global variable.
 *****************************************************************************
 */
 static void TaskStartDispInit(void) {
+	//Set the initial color, x-value, y-value.
 	INT8U initColor = DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY;
 	INT8U x,y;
 	INT8U i, j;
+
+	//Set the _weight,_s. 
 	char _weight[10]={0};
 	char _dens[10]={0};
 	char s[40];
+
+	//Clear display from LIGHT_GRAY
 	PC_DispClrScr(DISP_BGND_LIGHT_GRAY);
 
 	//draw the layout - div1
-	//for(x=div1[LEFT]+1; x<div1[RIGHT]; x++) 
 	PC_DispStr(div1[LEFT]+1, div1[UP]-3, "팀 명 : 뿌셔뿌셔 미세먼지", initColor);
 	PC_DispStr(div1[LEFT] + 1, div1[UP] - 2, "학번(이름) : 2012722002(이도연), 2012722041(김승훈)", initColor);
 	PC_DispStr(div1[LEFT] + 1, div1[UP] - 1, "작 품 명: 실시간 대기오염 물질 측정 시스템", initColor);
@@ -250,17 +250,14 @@ static void TaskStartDispInit(void) {
 	for (y = div1[UP] + 1; y<div6[UP]; y++) {
 		PC_DispStr(div6[LEFT]-1,y, "||", initColor);
 	}
-	//for(x=div1[LEFT]+1; x<div1[RIGHT]; x++) PC_DispStr(x, div1[BOTTOM], "￣", initColor);
 	PC_DispStr(div1[LEFT]+1, div1[BOTTOM], "―――――――――――――――――――", initColor);
 
 	//draw the layout - div2
-	//for(x=div2[LEFT]+1; x<div2[RIGHT]; x++) 
 	PC_DispStr(div2[LEFT]+1, div2[UP], "―――――――――――――――――――", initColor);
 	for(y=div2[UP]+1; y<div2[BOTTOM]; y++) {
 		PC_DispStr(div2[LEFT],  y, "｜", initColor);
 		PC_DispStr(div2[RIGHT], y, "｜", initColor);
 	} 
-	//for(x=div2[LEFT]+1; x<div2[RIGHT]; x++) PC_DispStr(x, div2[BOTTOM], "￣", initColor);
 	PC_DispStr(div2[LEFT]+1, div1[BOTTOM], "―――――――――――――――――――", initColor);
 	PC_GetDateTime(s);
 	PC_DispStr(div2[LEFT]+18, div2[BOTTOM]-1, s, initColor);
@@ -274,25 +271,16 @@ static void TaskStartDispInit(void) {
 	PC_DispStr(div3[LEFT]+2, div3[UP]+2, "10m/s", initColor);
 
 	//draw the layout - div4
-	//for(x=div4[LEFT]+1; x<div4[RIGHT]; x++) PC_DispStr(x, div4[UP], "―", initColor);
-
-
 	PC_DispStr(div4[LEFT]+1, div4[UP], "―――――――――――――――――――", initColor);
-	
-	//for(y=div4[UP]+1; y<div4[BOTTOM]; y++) {
-	//	for(x=div4[LEFT]+2; x<div4[RIGHT]-1; x++) PC_DispStr(x, y, "○", initColor);
-	//}
 	y = div1[UP] + 13;
-
 	PC_DispStr(div1[LEFT] + 4, y, "１２３４５６７８９10", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
-
-
 	PC_DispStr(div4[LEFT]+2, div4[UP]+1, "○○○○○○○○○○○○○○", initColor);
 	PC_DispStr(div4[LEFT]+2, div4[UP]+2, "○○○○○○○○○○○○○○", initColor);
 
 	//draw the layout - div5
 	for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"▶", initColor);
 
+	//draw the layout - div6 : manual mode.
 	if(weight||dens) {
 		PC_DispStr(div6[LEFT]+1,div6[UP],"―――――――", initColor);		
 		for(y=div6[UP]+1;y<=div6[BOTTOM];y++) PC_DispStr(div6[LEFT],y,"｜", initColor);
@@ -311,8 +299,11 @@ static void TaskStartDispInit(void) {
 
 /*
 *****************************************************************************
-                                  Function - 1
-    Description :
+                             Function - fillZero
+    Description :	This function initializes the AirPollutant structure 
+					array, which is a structure that stores 
+					the atmospheric substance, 
+					to zero as much as the incoming parameter.
 *****************************************************************************
 */
 void fillZero(INT8U from, INT8U to) {
@@ -336,32 +327,30 @@ void fillZero(INT8U from, INT8U to) {
 */
 void generateWind(void *pdata) {
 	INT8U err;
-
 	srand(time((unsigned int *)0) + (OSTCBCur->OSTCBPrio));
 
 	for(;;) {
-		OSSemPend(sem,0,&err);
+		OSSemPend(sem,0,&err); // binary semaphore locking
 		if(weight) {
 			VALUE = weight;
 		}
 		else {
-			// VALUE = rand()%LENGTH;
-			// VALUE = rand()%2? VALUE : -VALUE;
-			VALUE = rand()%3;
-			VALUE = rand()%6? VALUE : -VALUE;
-			//VALUE =1 ;
+			VALUE = rand()%3;// Range : [-3,3]
+			VALUE = rand()%6? VALUE : -VALUE; // Negative by 16.67% 
 		}
-//		printf("[Generate Random Wind]\n\tvalue is %d\n", VALUE);
-		OSTimeDly(2);
+		OSTimeDly(1); // syncrhonize as 1 second.
 		OSSemPost(sem);
-		// OSTaskSuspend(OS_PRIO_SELF);
 	}
 }
-
 /*
 *****************************************************************************
-                      TASK - Generate Random Air Pollution
-    Description :
+                     TASK - Generate Random Air Pollution
+    Description :	This task is a task to randomly generate 
+					atmospheric substances. 
+					First, limit the concentration of all the atmospheric 
+					substances and set the concentration of each element 
+					arbitrarily according to the number of them using a 
+					random function, rand().	
 *****************************************************************************
 */
 void generateAirPollution(void *pdata) {
@@ -371,33 +360,36 @@ void generateAirPollution(void *pdata) {
 	srand(time((unsigned int *)0) + (OSTCBCur->OSTCBPrio));
 
 	for(;;) {
-		OSSemPend(sem,0,&err);
-		remain = rand()%(DENSITY-dens)+dens;
+		OSSemPend(sem,0,&err); // binary semaphore locking.
+
+		remain = rand()%(DENSITY-dens)+dens; // set total density.
+
 		if(remain) {
 			AirPollutant[0].Large = rand()%remain;
-			remain -= AirPollutant[0].Large;
+			remain -= AirPollutant[0].Large; // remain remains -Large. 
 		}
 		if(remain) {
 			AirPollutant[0].Middle = rand()%remain;
-			remain -= AirPollutant[0].Middle;
+			remain -= AirPollutant[0].Middle; // remain remains -Middle.
 		}
 		if(remain) {
-			AirPollutant[0].Small = remain;
+			AirPollutant[0].Small = remain; // remain remains -Small.
 		}
-
-		// AirPollutant[0].color = 0;
-		// AirPollutant[0].posY = ;
-		// AirPollutant[0].state = 0;
-
-//		printf("[GenerateAirPollution]\n\t%4u, L:%d M:%d S:%d\n", OSTimeGet(), AirPollutant[0].Large, AirPollutant[0].Middle, AirPollutant[0].Small);
-		OSTaskResume(testPrior-1);
+		OSTaskResume(Prior-1);
 		OSSemPost(sem);
 	}
 }
 /*
 *****************************************************************************
                       TASK - Update The Air Pollutant
-    Description :
+    Description :	This task is a task to update air pollutants. 
+					Air pollutants are updated to reflect 
+					the VALUE value generated by the generateWind, 
+					the 0th AirPollutant structure generated by 
+					generateAirPollution.
+
+					If VALUE is positive, the structure is copied back,
+					If VALUE is negative, the structure is copied forward.
 *****************************************************************************
 */
 void updateStructure(void *pdata) {
@@ -407,33 +399,31 @@ void updateStructure(void *pdata) {
 
 	for(;;) {
 		OSTaskSuspend(OS_PRIO_SELF);
-//		printf("[UpdateTheAirPollution] VALUE is : %d\n", VALUE);
-
 		if(VALUE>0) {
-			for(i=LENGTH-1; i>=VALUE; i--) AirPollutant[i] = AirPollutant[i-VALUE];
-			fillZero(0,VALUE);
+			for(i=LENGTH-1; i>=VALUE; i--) AirPollutant[i] = AirPollutant[i-VALUE]; //forwarding copy from i to i-VALUE.
+			fillZero(0,VALUE); // fill the structures be remain as zero.
 		}
 		else if(VALUE<0) {
 			_VALUE = -VALUE;
-			for(i=0; i<LENGTH-_VALUE; i++) AirPollutant[i] = AirPollutant[i+_VALUE];
-			fillZero(LENGTH-_VALUE-1,LENGTH);
+			for(i=0; i<LENGTH-_VALUE; i++) AirPollutant[i] = AirPollutant[i+_VALUE]; //backing copy from i to i+_VALUE.
+			fillZero(LENGTH-_VALUE-1,LENGTH); // fill the structures be remain as zero.
 		}
-
-		sprintf(msg,"%4u: Task %u schedule", OSTimeGet(),
-			OSTCBCur->OSTCBPrio);
-		err = OSQPostOpt(msg_q, msg,OS_POST_OPT_BROADCAST); // (13)
-		while (err != OS_NO_ERR)
-		{
+		sprintf(msg,"%4u: Task %u schedule", OSTimeGet(), OSTCBCur->OSTCBPrio);
+		err = OSQPostOpt(msg_q, msg,OS_POST_OPT_BROADCAST); // (13) BROADCASTING
+		while (err != OS_NO_ERR) { 
 			err = OSQPost(msg_q, msg);
 		}
-//		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Large); printf("\n");
-//		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Middle); printf("\n");
-//		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Small); printf("\n");
-//		 for(i=0;i<LENGTH;i++) printf("%d\t", i); printf("\n");
-		 //OSTaskResume(testPrior-2);
 	}
 }
 
+/*
+*****************************************************************************
+                               TASK - taskDisplay
+    Description :	This task is a task for displaying information 
+					in the console window. Scheduling activation/deactivation 
+					is used to prevent preemption.
+*****************************************************************************
+*/
 void taskDisplay(void *pdata) {
 	INT8U i,j,y;
 	INT8U temp[3];
@@ -441,11 +431,11 @@ void taskDisplay(void *pdata) {
 	int per = 0;
 	for(;;) {
 		OSTaskSuspend(OS_PRIO_SELF);
-		
-
 		OSSchedLock();
 		PC_DispClrScr(DISP_BGND_LIGHT_GRAY);
 		TaskStartDispInit();
+
+		//According to the sign of VALUE, set character properly. 
 		if (VALUE == 0) {
 			for (y = div5[UP] + 1; y <= div5[BOTTOM]; y++) PC_DispStr(div5[LEFT], y, "▲", DISP_FGND_BLUE+ DISP_BGND_LIGHT_GRAY);
 			PC_DispStr(div3[LEFT] + 2, div3[UP] + 1, "N　▲", DISP_FGND_BLUE + DISP_BGND_LIGHT_GRAY);
@@ -464,16 +454,13 @@ void taskDisplay(void *pdata) {
 			sprintf(s, "%d m/s", VALUE);
 			PC_DispStr(div3[LEFT] + 2, div3[UP] + 2, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
 		}
+		
+		//display AirPollutant from 1 to LENGTH.
 		for(i=1;i<LENGTH;i++) {
-
-
 			temp[0] = AirPollutant[i].Large;
 			temp[1] = AirPollutant[i].Middle;
 			temp[2] = AirPollutant[i].Small;
 			y=div1[UP]+1;
-			//PC_DispStr(div1[LEFT]+2,y,"■", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY );
-//			printf("%dm, temp[0] : %d\t, temp[1]:%d\t, temp[2]:%d\n", i,temp[0],temp[1],temp[2]);
-//			for(j=0;j>30000000;j++);				
 
 			for(j=temp[0];j>0;j--,y++) {
 				PC_DispStr(div1[LEFT]+2+i*2,y,"■", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY); 
@@ -488,53 +475,63 @@ void taskDisplay(void *pdata) {
 			sprintf(s, "통합지수 : %d percent \n\t\t\t\t\t\t황사 농도 : %d percent \n\t\t\t\t\t\t미세먼지 농도 : %d percent \n\t\t\t\t\t\t초미세먼지 농도 : %d percent", calc, lar, mid, sml);
 			PC_DispStr(div2[LEFT] + 7, div2[UP] + 5, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
 			per = (calc * 14) / 100;
+
+			//this character moves as total density, calc.
 			for (j = 0; j < per; j++){
-				if (calc < 25){
+				if (calc < 25){ // < 25%
 					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 1, "●", DISP_FGND_WHITE + DISP_BGND_LIGHT_GRAY);
 					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 2, "●", DISP_FGND_WHITE + DISP_BGND_LIGHT_GRAY);
 				}
-				else if (calc < 50){
+				else if (calc < 50){ // <50%
 					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 1, "●", DISP_FGND_CYAN + DISP_BGND_LIGHT_GRAY);
 					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 2, "●", DISP_FGND_CYAN + DISP_BGND_LIGHT_GRAY);
 				}
-				else if (calc < 75){
+				else if (calc < 75){ // <75%
 					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 1, "●", DISP_FGND_YELLOW + DISP_BGND_LIGHT_GRAY);
 					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 2, "●", DISP_FGND_YELLOW + DISP_BGND_LIGHT_GRAY);
 				}
-				else {
+				else { // >=75%
 					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 1, "●", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
 					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 2, "●", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
 				}
-			}
-					
-			
-
-		
+			}					
 		}
 		OSSchedUnlock();
 	}
 
 }
 
+/*
+*****************************************************************************
+                                  TASK - Calc
+    Description :	This task is a task to calculate the air pollutant 
+					concentration based on the antenna.
+*****************************************************************************
+*/
 void Calc(void *data){
-
 	void *msg;
 	INT8U err;
 	INT8U temp[3];
 
 	for (;;) {
 		msg = OSQPend(msg_q, 0, &err); 
-		if (msg != 0)
-		{
+		if (msg != 0) { // Antenna is located in [10].
 			lar = AirPollutant[10].Large * (100/12);
 			mid = AirPollutant[10].Middle *(100 / 12);
 			sml = AirPollutant[10].Small * (100 / 12);
 			calc = lar + mid + sml;
-			OSTaskResume(testPrior - 3);
+			OSTaskResume(Prior - 3);
 		}
 	}
 }
 
+/*
+*****************************************************************************
+                            TASK - LogTask
+    Description :	This task is a task to save the current Air Pollutant 
+					Index to a log file.
+*****************************************************************************
+*/
 void LogTask(void *pdata) 
 {
 	FILE *log;
@@ -562,9 +559,17 @@ void LogTask(void *pdata)
 	}
 }
 
+/*
+*****************************************************************************
+                             TASK - AlertTask
+    Description :	This task is a task that alerts you based on the current 
+					level of air pollution. An alarm message occurs 
+					when the percentage of each contaminant exceeds 50%, 
+					and the alarm sounds through the sndPlaySoundA () function.
+*****************************************************************************
+*/
 void AlertTask(void *pdata)
 {
-
 	void *msg;
 	INT8U err;
 	INT8U temp[3];
@@ -579,14 +584,12 @@ void AlertTask(void *pdata)
 			mid = AirPollutant[10].Middle *(100 / 12);
 			sml = AirPollutant[10].Small * (100 / 12);
 
-	
 			_getcwd(currentPath, _MAX_PATH);
 			sprintf(s1, "%s\\55.wav", currentPath);
 			if (lar > 50){
 				sprintf(s, "황사 주의보 발령");
 				PC_DispStr(div2[LEFT] + 7, div2[UP] + 12, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
 				sndPlaySoundA(s1, SND_ASYNC | SND_NODEFAULT);
-
 			}
 			else if (lar > 70){
 				sprintf(s, "황사 경보 발령");
@@ -614,86 +617,65 @@ void AlertTask(void *pdata)
 				sndPlaySoundA(s1, SND_ASYNC | SND_NODEFAULT);
 			
 			}
-	
-
 		}
 	}
 }
 
-
-
-
-
 /*
 *****************************************************************************
-                                  TASK - 2
-    Description :
+                                TASK - testRoutine
+    Description :	This task is a task that responds to user input events. 
+					The event is triggered when the user presses 
+					the direction key, 0, Ctrl + Z, ESC.
 *****************************************************************************
 */
-
 void testRoutine(void *data) {
 	INT16S key;
 	TaskStartDispInit();
 
-  while(1) {
+	while(1) {
 		if (PC_GetKey(&key)) {
-      if (key == 0x1B) {
-        exit(0);
-      } else if(key == 0x30) {
-        PC_DispStr(0,0,"inserted 0", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-		weight=0;
-		dens=0;
-      } else if(key == 0x31) {
-        PC_DispStr(0,0,"inserted 1", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-      } else if(key == 0x32) {
-        PC_DispStr(0,0,"inserted 2", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-      } else if(key == 0x33) {
-        PC_DispStr(0,0,"inserted 3", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-      } else if(key == 0x34) {
-        PC_DispStr(0,0,"inserted 4", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-      } else if(key == 0x35) {
-        PC_DispStr(0,0,"inserted 5", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-      } else if(key == 75) {
-        PC_DispStr(0,0,"LEFT", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-		weight--;
-      } else if(key == 77) {
-        PC_DispStr(0,0,"RIGHT", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-		weight++;
-      } else if(key == 72) {
-        PC_DispStr(0,0,"UP", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-		if(dens!=(DENSITY-1)) dens++;
-      } else if(key == 80) {
-        PC_DispStr(0,0,"DOWN", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-		if(dens) dens--;
-	  }
-	  else if (key == 26){
-		  OSTaskResume(testPrior - 7);
-	  }
-    }
-	OSTimeDlyHMSM(0,0,1,0);
+			if (key == 0x1B) {
+				exit(0);
+			} else if(key == 0x30) {
+				weight=0;
+				dens=0;
+			} else if(key == 75) {
+				weight--;
+			} else if(key == 77) {
+				weight++;
+			} else if(key == 72) {
+				if(dens!=(DENSITY-1)) dens++;
+			} else if(key == 80) {
+				if(dens) dens--;
+			}
+			else if (key == 26){ // preemptived by initTask
+				OSTaskResume(Prior - 7);
+				 dens=0;
+				 weight=0;
+			}
+		}	OSTimeDlyHMSM(0,0,1,0);
   }
 }
 
+/*
+*****************************************************************************
+                               TASK - InitTask, InitAllVar
+    Description :	This task is a task that initializes variables, structure.
+*****************************************************************************
+*/
 void InitTask(void *data){
-
 	for (;;) {
 		OSTaskSuspend(OS_PRIO_SELF);
 		fillZero(0, LENGTH);
 	}
 }
 
-
-
-/*
-*****************************************************************************
-                                  TASK - 2
-    Description :
-*****************************************************************************
-*/
-
-/*
-*****************************************************************************
-                                  HEADER
-    Description :
-*****************************************************************************
-*/
+void InitAllVar(void *data) {
+	calc=sml=mid=lar=weight=dens=VALUE=0;
+	for(;;){
+		OSTimeDly(1);
+		OSTaskSuspend(OS_PRIO_SELF);
+		OSTaskDel(OS_PRIO_SELF);
+	}
+}
