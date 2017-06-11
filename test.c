@@ -1,19 +1,17 @@
 /*
 *****************************************************************************
                   Embedded System S/W Design, Spring 2017
-    Team : ""
-    Title :  ""
-    Stu No :  2012722002
-              2012722041
-
-          Copyright (c) 2017, "" Copyright Holder All Rights Reserved.
+    Team	:	»Ñ¼Å»Ñ¼Å ¹Ì¼¼¸ÕÁö
+    Team No.:	12Á¶	
+    Stu No	:	2012722002
+				2012722041
 *****************************************************************************
 */
 
 /*
 *****************************************************************************
                                     HEADER
-    Description :
+    Description : Include the required header file.
 *****************************************************************************
 */
 #define _CRT_SECURE_NO_WARNINGS
@@ -29,81 +27,89 @@
 /*
 *****************************************************************************
                                   CONSTANTS
-    Description :
-    
+    Description :	Define the constants. 
+					These correspond to the task stack size, priority, 
+					direction, length, and density.    
 *****************************************************************************
 */
-#define TASK_STK_SIZE 512
-#define testPrior     10
+#define TASK_STK_SIZE			512
+#define testPrior				10
 #define N_MSG					100
 
-#define LEFT          0
-#define RIGHT         1
-#define UP            2
-#define BOTTOM        3
+#define LEFT					0
+#define RIGHT					1
+#define UP						2
+#define BOTTOM					3
 
-#define LENGTH				11
-#define DENSITY			13
+#define LENGTH					11
+#define DENSITY					13
 
-#define BLACK					DISP_FGND_BLACK
-#define YELLOW				DISP_FGND_YELLOW
 /*
 *****************************************************************************
                           VARIABLES & STRUCTURES
-    Description :
+    Description :	Declare required variables and structures, 
+					task stacks, task events, and so on.
 *****************************************************************************
 */
-OS_STK  testStk[TASK_STK_SIZE];
-OS_STK	testStk2[TASK_STK_SIZE];
-OS_STK	windStk[TASK_STK_SIZE];
-OS_STK	AirPollutionStk[TASK_STK_SIZE];
-OS_STK	UptStk[TASK_STK_SIZE];
-OS_STK	DispStk[TASK_STK_SIZE];
-OS_STK CalStk[TASK_STK_SIZE];
-OS_STK LogStk[TASK_STK_SIZE];
-OS_STK AlertStk[TASK_STK_SIZE];
-OS_STK InitStk[TASK_STK_SIZE];
+//The part of stack.
+OS_STK		testStk[TASK_STK_SIZE];
+OS_STK		windStk[TASK_STK_SIZE];
+OS_STK		AirPollutionStk[TASK_STK_SIZE];
+OS_STK		UptStk[TASK_STK_SIZE];
+OS_STK		DispStk[TASK_STK_SIZE];
+OS_STK		CalStk[TASK_STK_SIZE];
+OS_STK		LogStk[TASK_STK_SIZE];
+OS_STK		AlertStk[TASK_STK_SIZE];
+OS_STK		InitStk[TASK_STK_SIZE];
 
-OS_EVENT *sem;
-OS_EVENT *msg_q; 
-void *msg_array[N_MSG];
-int calc = 0;
-int sml = 0;
-int mid = 0;
-int lar = 0;
-int weight;
-int dens;
+//The part of event. There are two types of events: 
+//semaphores and message queues. 
+OS_EVENT	*sem;
+OS_EVENT	*msg_q;
 
-INT8U   div1[4] = { 1,  39,   4,  21};
-INT8U   div2[4] = {41,  79,   4,  21};
-INT8U   div3[4] = {32,  39,  18,  21};
-INT8U   div4[4] = { 1,  33,  18,  21};
-INT8U   div5[4] = { 3,   3,   4,  17};
-INT8U   div6[4] = { 25, 39,  14,  17};
+//The part of variable. A calculation value of a message queue and 
+//each atmospheric substance, a variable for 
+//storing a value in a manual mode.
+void		*msg_array[N_MSG];
+int			calc = 0;
+int			sml = 0;
+int			mid = 0;
+int			lar = 0;
+int			weight;
+int			dens;
+int			VALUE;
 
+//The part of layout.
+//Specify the bounds for each div for the display layout.
+INT8U		div1[4] = { 1,	39,   4,  21};
+INT8U		div2[4] = {41,	79,   4,  21};
+INT8U		div3[4] = {32,	39,  18,  21};
+INT8U		div4[4] = { 1,	33,  18,  21};
+INT8U		div5[4] = { 3,	 3,   4,  17};
+INT8U		div6[4] = {25,	39,  14,  17};
 
+//Structure to store atmospheric materials.
 typedef struct {
-	// INT8U color;
-	// INT8U posY;
 	INT8U Large;
 	INT8U Middle;
 	INT8U Small;
-	// INT8U state;
 } AIR_POLLUTANT;
+AIR_POLLUTANT	AirPollutant[LENGTH];
 
-AIR_POLLUTANT AirPollutant[LENGTH];
-int						VALUE;
 /*
 *****************************************************************************
                             FUNCTION PROTOTYPES
-    Description :
+    Description :	There are two types of functions.
+					Functions corressponding to task routines,
+					the other specific functions by the function-call.
 *****************************************************************************
 */
 void TaskCreate(void);
-void testRoutine(void *data);
-void testRoutine2(void *data);
-
 static void TaskStartDispInit(void);
+void fillZero(INT8U from, INT8U to);
+
+//The task routine.
+void testRoutine(void *data);
 void generateWind(void *pdata);
 void generateAirPollution(void *pdata);
 void updateStructure(void *pdata);
@@ -113,11 +119,12 @@ void LogTask(void*pdata);
 void AlertTask(void*pdata);
 void InitTask(void*pdata);
 
-void fillZero(INT8U from, INT8U to);
 /*
 *****************************************************************************
                                     MAIN
-    Description :
+    Description :	This function is the main function. 
+					The main function consists of OS initialization, 
+					task creation, and OS startup.
 *****************************************************************************
 */
 
@@ -212,13 +219,6 @@ void TaskCreate(void) {
 		&InitStk[TASK_STK_SIZE - 1],
 		testPrior - 7
 		);
-	//
-	// OSTaskCreate(
-	// 	testRoutine2,
-	// 	(void *)0,
-	// 	&testStk2[TASK_STK_SIZE - 1],
-	// 	testPrior-1
-	// );
 }
 
 
@@ -684,19 +684,6 @@ void InitTask(void *data){
     Description :
 *****************************************************************************
 */
-
-void testRoutine2(void *data) {
-	INT8U posX,posY;
-	srand(time(NULL));
-
-  while(1) {
-	  posX=rand()%10 + div1[LEFT] + 1;
-	  posY=rand()%10 + div1[UP] + 1;
-	  PC_DispStr(posX,posY, "Q", DISP_FGND_YELLOW + DISP_BGND_BLACK);
-
-	  OSTimeDly(1);
-  }
-}
 
 /*
 *****************************************************************************
