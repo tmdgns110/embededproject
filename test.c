@@ -176,6 +176,7 @@ void TaskCreate(void) {
 static void TaskStartDispInit(void) {
 	INT8U initColor = DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY;
 	INT8U x,y;
+	INT8U i, j;
 
 	PC_DispClrScr(DISP_BGND_LIGHT_GRAY);
 
@@ -209,10 +210,19 @@ static void TaskStartDispInit(void) {
 
 	//draw the layout - div4
 	//for(x=div4[LEFT]+1; x<div4[RIGHT]; x++) PC_DispStr(x, div4[UP], "¡ª", initColor);
+
+
 	PC_DispStr(div4[LEFT]+1, div4[UP], "¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª", initColor);
+	
 	//for(y=div4[UP]+1; y<div4[BOTTOM]; y++) {
 	//	for(x=div4[LEFT]+2; x<div4[RIGHT]-1; x++) PC_DispStr(x, y, "¡Û", initColor);
 	//}
+	y = div1[UP] + 13;
+
+	PC_DispStr(div1[LEFT] + 4, y, "£±£²£³£´£µ£¶£·£¸£¹10", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+
+
+
 	PC_DispStr(div4[LEFT]+2, div4[UP]+1, "¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û", initColor);
 	PC_DispStr(div4[LEFT]+2, div4[UP]+2, "¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û", initColor);
 
@@ -364,9 +374,9 @@ void taskDisplay(void *pdata) {
 			for(j=temp[2];j>0;j--,y++) {
 				PC_DispStr(div1[LEFT]+2+i*2,y,"¡á", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY); 
 			}
-			for(j=y;j>DENSITY;j++) { 
-				PC_DispStr(div1[LEFT]+2+i*2,y,"¡¡", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
-			}
+	
+			
+		
 		}
 		OSSchedUnlock();
 	}
