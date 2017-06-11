@@ -52,6 +52,7 @@ OS_STK	testStk2[TASK_STK_SIZE];
 OS_STK	windStk[TASK_STK_SIZE];
 OS_STK	AirPollutionStk[TASK_STK_SIZE];
 OS_STK	UptStk[TASK_STK_SIZE];
+OS_STK	DispStk[TASK_STK_SIZE];
 OS_EVENT *sem;
 
 INT8U   div1[4] = { 1,  39,   4,  21};
@@ -85,6 +86,7 @@ static void TaskStartDispInit(void);
 void generateWind(void *pdata);
 void generateAirPollution(void *pdata);
 void updateStructure(void *pdata);
+void taskDisplay(void *pdata);
 
 void fillZero(INT8U from, INT8U to);
 /*
@@ -143,8 +145,12 @@ void TaskCreate(void) {
 		&UptStk[TASK_STK_SIZE-1],
 		testPrior-1
 	);
-
-
+	OSTaskCreate(
+		taskDisplay,
+		NULL,
+		&DispStk[TASK_STK_SIZE-1],
+		testPrior-2
+	);
 //	OSTaskCreate(
 //		testRoutine,
 	//	(void *)0,
@@ -160,6 +166,13 @@ void TaskCreate(void) {
 	// );
 }
 
+
+/*
+*****************************************************************************
+                                  Function - 1
+    Description :
+*****************************************************************************
+*/
 static void TaskStartDispInit(void) {
 	INT8U initColor = DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY;
 	INT8U x,y;
@@ -207,6 +220,13 @@ static void TaskStartDispInit(void) {
 	for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"¢º", initColor);
 }
 
+
+/*
+*****************************************************************************
+                                  Function - 1
+    Description :
+*****************************************************************************
+*/
 void fillZero(INT8U from, INT8U to) {
 	INT8U i;
 	for(i=from; i<to; i++) {
@@ -237,7 +257,8 @@ void generateWind(void *pdata) {
 		// VALUE = rand()%2? VALUE : -VALUE;
 		VALUE = rand()%3;
 		VALUE = rand()%3? VALUE : -VALUE;
-		printf("[Generate Random Wind]\n\tvalue is %d\n", VALUE);
+		VALUE =1 ;
+//		printf("[Generate Random Wind]\n\tvalue is %d\n", VALUE);
 		OSTimeDly(2);
 		OSSemPost(sem);
 		// OSTaskSuspend(OS_PRIO_SELF);
@@ -275,12 +296,11 @@ void generateAirPollution(void *pdata) {
 		// AirPollutant[0].posY = ;
 		// AirPollutant[0].state = 0;
 
-		printf("[GenerateAirPollution]\n\t%4u, L:%d M:%d S:%d\n", OSTimeGet(), AirPollutant[0].Large, AirPollutant[0].Middle, AirPollutant[0].Small);
+//		printf("[GenerateAirPollution]\n\t%4u, L:%d M:%d S:%d\n", OSTimeGet(), AirPollutant[0].Large, AirPollutant[0].Middle, AirPollutant[0].Small);
 		OSTaskResume(testPrior-1);
 		OSSemPost(sem);
 	}
 }
-
 /*
 *****************************************************************************
                       TASK - Update The Air Pollutant
@@ -291,7 +311,7 @@ void updateStructure(void *pdata) {
 	INT8U i,_VALUE;
 	for(;;) {
 		OSTaskSuspend(OS_PRIO_SELF);
-		printf("[UpdateTheAirPollution] VALUE is : %d\n", VALUE);
+//		printf("[UpdateTheAirPollution] VALUE is : %d\n", VALUE);
 
 		if(VALUE>0) {
 			for(i=LENGTH-1; i>=VALUE; i--) AirPollutant[i] = AirPollutant[i-VALUE];
@@ -302,13 +322,57 @@ void updateStructure(void *pdata) {
 			for(i=0; i<LENGTH-_VALUE; i++) AirPollutant[i] = AirPollutant[i+_VALUE];
 			fillZero(LENGTH-_VALUE-1,LENGTH);
 		}
-
-		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Large); printf("\n");
-		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Middle); printf("\n");
-		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Small); printf("\n");
-		 for(i=0;i<LENGTH;i++) printf("%d\t", i); printf("\n");
+	
+//		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Large); printf("\n");
+//		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Middle); printf("\n");
+//		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Small); printf("\n");
+//		 for(i=0;i<LENGTH;i++) printf("%d\t", i); printf("\n");
+		 OSTaskResume(testPrior-2);
 	}
 }
+
+void taskDisplay(void *pdata) {
+	INT8U i,j,y;
+	INT8U temp[3];
+	for(;;) {
+		OSTaskSuspend(OS_PRIO_SELF);
+		
+
+		OSSchedLock();
+		PC_DispClrScr(DISP_BGND_LIGHT_GRAY);
+		TaskStartDispInit();
+		if(VALUE>=0) for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"¢º", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		else for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"¢¸", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);	
+
+		for(i=0;i<LENGTH;i++) {
+
+
+			temp[0] = AirPollutant[i].Large;
+			temp[1] = AirPollutant[i].Middle;
+			temp[2] = AirPollutant[i].Small;
+			y=div1[UP]+1;
+			//PC_DispStr(div1[LEFT]+2,y,"¡á", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY );
+//			printf("%dm, temp[0] : %d\t, temp[1]:%d\t, temp[2]:%d\n", i,temp[0],temp[1],temp[2]);
+//			for(j=0;j>30000000;j++);				
+			
+			for(j=temp[0];j>0;j--,y++) {
+				PC_DispStr(div1[LEFT]+2+i*2,y,"¡á", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY); 
+			}
+			for(j=temp[1];j>0;j--,y++) {
+				PC_DispStr(div1[LEFT]+2+i*2,y,"¡á", DISP_FGND_YELLOW + DISP_BGND_LIGHT_GRAY);
+			}
+			for(j=temp[2];j>0;j--,y++) {
+				PC_DispStr(div1[LEFT]+2+i*2,y,"¡á", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY); 
+			}
+			for(j=y;j>DENSITY;j++) { 
+				PC_DispStr(div1[LEFT]+2+i*2,y,"¡¡", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+			}
+		}
+		OSSchedUnlock();
+	}
+
+}
+
 
 
 /*
