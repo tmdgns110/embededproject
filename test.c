@@ -54,6 +54,7 @@ OS_STK	AirPollutionStk[TASK_STK_SIZE];
 OS_STK	UptStk[TASK_STK_SIZE];
 OS_STK	DispStk[TASK_STK_SIZE];
 OS_STK CalStk[TASK_STK_SIZE];
+OS_STK LogStk[TASK_STK_SIZE];
 
 OS_EVENT *sem;
 OS_EVENT *msg_q; 
@@ -97,7 +98,7 @@ void generateAirPollution(void *pdata);
 void updateStructure(void *pdata);
 void taskDisplay(void *pdata);
 void Calc(void *pdata);
-
+void LogTask(void*pdata);
 void fillZero(INT8U from, INT8U to);
 /*
 *****************************************************************************
@@ -172,6 +173,14 @@ void TaskCreate(void) {
 		NULL,
 		&CalStk[TASK_STK_SIZE - 1],
 		testPrior -3
+	);
+	OSTaskCreate(
+		LogTask,
+		NULL,
+		&LogStk[TASK_STK_SIZE - 1],
+		testPrior - 4
+
+
 	);
 
 //	OSTaskCreate(
@@ -358,9 +367,9 @@ void updateStructure(void *pdata) {
 			fillZero(LENGTH-_VALUE-1,LENGTH);
 		}
 
-		sprintf(msg, "%4u: Task %u schedule\n", OSTimeGet(),
+		sprintf(msg,"%4u: Task %u schedule", OSTimeGet(),
 			OSTCBCur->OSTCBPrio);
-		err = OSQPost(msg_q, msg); // (13)
+		err = OSQPostOpt(msg_q, msg,OS_POST_OPT_BROADCAST); // (13)
 		while (err != OS_NO_ERR)
 		{
 			err = OSQPost(msg_q, msg);
@@ -470,6 +479,31 @@ void Calc(void *data){
 			sml = AirPollutant[10].Small * (100 / 12);
 			calc = lar + mid + sml;
 			OSTaskResume(testPrior - 2);
+		}
+	}
+}
+
+void LogTask(void *pdata) 
+{
+	FILE *log;
+	void *msg;
+	INT8U err;
+	INT8U temp[3];
+	char s[80];
+	log = fopen("log.txt", "w"); // (7)
+	for (;;) {
+		msg = OSQPend(msg_q, 0, &err); // (8)
+		if (msg != 0)
+		{
+			lar = AirPollutant[10].Large * (100 / 12);
+			mid = AirPollutant[10].Middle *(100 / 12);
+			sml = AirPollutant[10].Small * (100 / 12);
+			calc = lar + mid + sml;
+			sprintf(s,"%s\n통합지수 : %d percent \n황사 농도 : %d percent \n미세먼지 농도 : %d percent \n초미세먼지 농도 : %d percent\n", msg, calc, lar, mid, sml);
+			if (calc > 0){
+				fprintf(log, "%s", s); // (9)
+				fflush(log);
+			}
 		}
 	}
 }
