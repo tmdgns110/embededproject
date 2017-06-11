@@ -239,11 +239,17 @@ static void TaskStartDispInit(void) {
 
 	//draw the layout - div1
 	//for(x=div1[LEFT]+1; x<div1[RIGHT]; x++) 
+	PC_DispStr(div1[LEFT]+1, div1[UP]-3, "ÆÀ ¸í : »Ñ¼Å»Ñ¼Å ¹Ì¼¼¸ÕÁö", initColor);
+	PC_DispStr(div1[LEFT] + 1, div1[UP] - 2, "ÇÐ¹ø(ÀÌ¸§) : 2012722002(ÀÌµµ¿¬), 2012722041(±è½ÂÈÆ)", initColor);
+	PC_DispStr(div1[LEFT] + 1, div1[UP] - 1, "ÀÛ Ç° ¸í: ½Ç½Ã°£ ´ë±â¿À¿° ¹°Áú ÃøÁ¤ ½Ã½ºÅÛ", initColor);
 	PC_DispStr(div1[LEFT]+1, div1[UP], "¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª", initColor);
 	for(y=div1[UP]+1; y<div1[BOTTOM]; y++) {
 		PC_DispStr(div1[LEFT],  y, "£ü", initColor);
 		PC_DispStr(div1[RIGHT], y, "£ü", initColor);
 	} 
+	for (y = div1[UP] + 1; y<div6[UP]; y++) {
+		PC_DispStr(div6[LEFT]-1,y, "||", initColor);
+	}
 	//for(x=div1[LEFT]+1; x<div1[RIGHT]; x++) PC_DispStr(x, div1[BOTTOM], "£þ", initColor);
 	PC_DispStr(div1[LEFT]+1, div1[BOTTOM], "¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª", initColor);
 
