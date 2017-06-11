@@ -234,6 +234,7 @@ static void TaskStartDispInit(void) {
 	INT8U i, j;
 	char _weight[10]={0};
 	char _dens[10]={0};
+	char s[40];
 	PC_DispClrScr(DISP_BGND_LIGHT_GRAY);
 
 	//draw the layout - div1
@@ -255,7 +256,9 @@ static void TaskStartDispInit(void) {
 	} 
 	//for(x=div2[LEFT]+1; x<div2[RIGHT]; x++) PC_DispStr(x, div2[BOTTOM], "��", initColor);
 	PC_DispStr(div2[LEFT]+1, div1[BOTTOM], "！！！！！！！！！！！！！！！！！！！", initColor);
-
+	PC_GetDateTime(s);
+	PC_DispStr(div2[LEFT]+18, div2[BOTTOM]-1, s, initColor);
+	
 	//draw the layout - div3
 	for(x=div3[LEFT]+1; x<div3[RIGHT]; x++) PC_DispStr(x, div3[UP], "！", initColor);
 	for(y=div3[UP]+1; y<div3[BOTTOM]; y++) {
