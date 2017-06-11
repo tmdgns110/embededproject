@@ -26,7 +26,6 @@
 
 #pragma comment(lib,"Winmm.lib")
 
-
 /*
 *****************************************************************************
                                   CONSTANTS
@@ -64,6 +63,7 @@ OS_STK CalStk[TASK_STK_SIZE];
 OS_STK LogStk[TASK_STK_SIZE];
 OS_STK AlertStk[TASK_STK_SIZE];
 
+
 OS_EVENT *sem;
 OS_EVENT *msg_q; 
 void *msg_array[N_MSG];
@@ -71,12 +71,15 @@ int calc = 0;
 int sml = 0;
 int mid = 0;
 int lar = 0;
+int weight;
+int dens;
 
 INT8U   div1[4] = { 1,  39,   4,  21};
 INT8U   div2[4] = {41,  79,   4,  21};
 INT8U   div3[4] = {32,  39,  18,  21};
 INT8U   div4[4] = { 1,  33,  18,  21};
 INT8U   div5[4] = { 3,   3,   4,  17};
+INT8U   div6[4] = { 25, 39,  14,  17};
 
 
 typedef struct {
@@ -196,13 +199,12 @@ void TaskCreate(void) {
 		&LogStk[TASK_STK_SIZE - 1],
 		testPrior - 2
 		);
-
-//	OSTaskCreate(
-//		testRoutine,
-	//	(void *)0,
-		//&testStk[TASK_STK_SIZE - 1],
-		//testPrior+4
-	//);
+	OSTaskCreate(
+		testRoutine,
+		NULL,
+		&testStk[TASK_STK_SIZE - 1],
+		testPrior-6
+	);
 	//
 	// OSTaskCreate(
 	// 	testRoutine2,
@@ -223,7 +225,8 @@ static void TaskStartDispInit(void) {
 	INT8U initColor = DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY;
 	INT8U x,y;
 	INT8U i, j;
-
+	char _weight[10]={0};
+	char _dens[10]={0};
 	PC_DispClrScr(DISP_BGND_LIGHT_GRAY);
 
 	//draw the layout - div1
@@ -273,6 +276,20 @@ static void TaskStartDispInit(void) {
 
 	//draw the layout - div5
 	for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"∈", initColor);
+
+	if(weight||dens) {
+		PC_DispStr(div6[LEFT]+1,div6[UP],"！！！！！！！", initColor);		
+		for(y=div6[UP]+1;y<=div6[BOTTOM];y++) PC_DispStr(div6[LEFT],y,"��", initColor);
+		PC_DispStr(div6[LEFT]+2,div6[UP]+1,"Manual Mode", initColor);
+	}
+	if(dens) {
+		sprintf(_dens, "Density:%d", dens);
+		PC_DispStr(div6[LEFT]+2,div6[UP]+2,_dens, initColor);
+	}
+	if(weight) {
+		sprintf(_weight,"Wind : %d", weight);
+		PC_DispStr(div6[LEFT]+2,div6[UP]+3,_weight, initColor);
+	}
 }
 
 
@@ -308,11 +325,16 @@ void generateWind(void *pdata) {
 
 	for(;;) {
 		OSSemPend(sem,0,&err);
-		// VALUE = rand()%LENGTH;
-		// VALUE = rand()%2? VALUE : -VALUE;
-		VALUE = rand()%3;
-		VALUE = rand()%6? VALUE : -VALUE;
-		//VALUE =1 ;
+		if(weight) {
+			VALUE = weight;
+		}
+		else {
+			// VALUE = rand()%LENGTH;
+			// VALUE = rand()%2? VALUE : -VALUE;
+			VALUE = rand()%3;
+			VALUE = rand()%6? VALUE : -VALUE;
+			//VALUE =1 ;
+		}
 //		printf("[Generate Random Wind]\n\tvalue is %d\n", VALUE);
 		OSTimeDly(2);
 		OSSemPost(sem);
@@ -334,7 +356,7 @@ void generateAirPollution(void *pdata) {
 
 	for(;;) {
 		OSSemPend(sem,0,&err);
-		remain = rand()%DENSITY;
+		remain = rand()%(DENSITY-dens)+dens;
 		if(remain) {
 			AirPollutant[0].Large = rand()%remain;
 			remain -= AirPollutant[0].Large;
@@ -584,6 +606,8 @@ void AlertTask(void *pdata)
 
 
 
+
+
 /*
 *****************************************************************************
                                   TASK - 2
@@ -601,6 +625,8 @@ void testRoutine(void *data) {
         exit(0);
       } else if(key == 0x30) {
         PC_DispStr(0,0,"inserted 0", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		weight=0;
+		dens=0;
       } else if(key == 0x31) {
         PC_DispStr(0,0,"inserted 1", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
       } else if(key == 0x32) {
@@ -611,9 +637,21 @@ void testRoutine(void *data) {
         PC_DispStr(0,0,"inserted 4", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
       } else if(key == 0x35) {
         PC_DispStr(0,0,"inserted 5", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+      } else if(key == 75) {
+        PC_DispStr(0,0,"LEFT", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		weight--;
+      } else if(key == 77) {
+        PC_DispStr(0,0,"RIGHT", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		weight++;
+      } else if(key == 72) {
+        PC_DispStr(0,0,"UP", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		if(dens!=(DENSITY-1)) dens++;
+      } else if(key == 80) {
+        PC_DispStr(0,0,"DOWN", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
+		if(dens) dens--;
       }
     }
-//	OSTimeDly(1);
+	OSTimeDlyHMSM(0,0,1,0);
   }
 }
 
