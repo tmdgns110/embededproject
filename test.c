@@ -53,13 +53,22 @@ OS_STK	windStk[TASK_STK_SIZE];
 OS_STK	AirPollutionStk[TASK_STK_SIZE];
 OS_STK	UptStk[TASK_STK_SIZE];
 OS_STK	DispStk[TASK_STK_SIZE];
+OS_STK CalStk[TASK_STK_SIZE];
+
 OS_EVENT *sem;
+OS_EVENT *msg_q; 
+void *msg_array[N_MSG];
+int calc = 0;
+int sml = 0;
+int mid = 0;
+int lar = 0;
 
 INT8U   div1[4] = { 1,  39,   4,  21};
 INT8U   div2[4] = {41,  79,   4,  21};
 INT8U   div3[4] = {32,  39,  18,  21};
 INT8U   div4[4] = { 1,  33,  18,  21};
 INT8U   div5[4] = { 3,   3,   4,  17};
+
 
 typedef struct {
 	// INT8U color;
@@ -87,6 +96,7 @@ void generateWind(void *pdata);
 void generateAirPollution(void *pdata);
 void updateStructure(void *pdata);
 void taskDisplay(void *pdata);
+void Calc(void *pdata);
 
 void fillZero(INT8U from, INT8U to);
 /*
@@ -99,6 +109,12 @@ void fillZero(INT8U from, INT8U to);
 int main (void)
 {
 	OSInit();
+	msg_q = OSQCreate(msg_array, (INT16U)N_MSG);
+	if (msg_q == 0)
+	{
+		printf("creating msg_q is failed\n");
+		return -1;
+	}
 	TaskStartDispInit();
 	TaskCreate();
 	OSStart();
@@ -151,6 +167,13 @@ void TaskCreate(void) {
 		&DispStk[TASK_STK_SIZE-1],
 		testPrior-2
 	);
+	OSTaskCreate(
+		Calc,
+		NULL,
+		&CalStk[TASK_STK_SIZE - 1],
+		testPrior -3
+	);
+
 //	OSTaskCreate(
 //		testRoutine,
 	//	(void *)0,
@@ -222,7 +245,6 @@ static void TaskStartDispInit(void) {
 	PC_DispStr(div1[LEFT] + 4, y, "１２３４５６７８９10", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
 
 
-
 	PC_DispStr(div4[LEFT]+2, div4[UP]+1, "○○○○○○○○○○○○○○", initColor);
 	PC_DispStr(div4[LEFT]+2, div4[UP]+2, "○○○○○○○○○○○○○○", initColor);
 
@@ -266,8 +288,8 @@ void generateWind(void *pdata) {
 		// VALUE = rand()%LENGTH;
 		// VALUE = rand()%2? VALUE : -VALUE;
 		VALUE = rand()%3;
-		VALUE = rand()%3? VALUE : -VALUE;
-		VALUE =1 ;
+		VALUE = rand()%6? VALUE : -VALUE;
+		//VALUE =1 ;
 //		printf("[Generate Random Wind]\n\tvalue is %d\n", VALUE);
 		OSTimeDly(2);
 		OSSemPost(sem);
@@ -319,6 +341,9 @@ void generateAirPollution(void *pdata) {
 */
 void updateStructure(void *pdata) {
 	INT8U i,_VALUE;
+	char msg[100];
+	INT8U err;
+
 	for(;;) {
 		OSTaskSuspend(OS_PRIO_SELF);
 //		printf("[UpdateTheAirPollution] VALUE is : %d\n", VALUE);
@@ -332,18 +357,27 @@ void updateStructure(void *pdata) {
 			for(i=0; i<LENGTH-_VALUE; i++) AirPollutant[i] = AirPollutant[i+_VALUE];
 			fillZero(LENGTH-_VALUE-1,LENGTH);
 		}
-	
+
+		sprintf(msg, "%4u: Task %u schedule\n", OSTimeGet(),
+			OSTCBCur->OSTCBPrio);
+		err = OSQPost(msg_q, msg); // (13)
+		while (err != OS_NO_ERR)
+		{
+			err = OSQPost(msg_q, msg);
+		}
 //		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Large); printf("\n");
 //		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Middle); printf("\n");
 //		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Small); printf("\n");
 //		 for(i=0;i<LENGTH;i++) printf("%d\t", i); printf("\n");
-		 OSTaskResume(testPrior-2);
+		 //OSTaskResume(testPrior-2);
 	}
 }
 
 void taskDisplay(void *pdata) {
 	INT8U i,j,y;
 	INT8U temp[3];
+	char s[80];
+	int per = 0;
 	for(;;) {
 		OSTaskSuspend(OS_PRIO_SELF);
 		
@@ -351,10 +385,25 @@ void taskDisplay(void *pdata) {
 		OSSchedLock();
 		PC_DispClrScr(DISP_BGND_LIGHT_GRAY);
 		TaskStartDispInit();
-		if(VALUE>=0) for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"▶", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
-		else for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"◀", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);	
-
-		for(i=0;i<LENGTH;i++) {
+		if (VALUE == 0) {
+			for (y = div5[UP] + 1; y <= div5[BOTTOM]; y++) PC_DispStr(div5[LEFT], y, "▲", DISP_FGND_BLUE+ DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(div3[LEFT] + 2, div3[UP] + 1, "N　▲", DISP_FGND_BLUE + DISP_BGND_LIGHT_GRAY);
+			sprintf(s, "%d m/s", VALUE);
+			PC_DispStr(div3[LEFT] + 2, div3[UP] + 2, s, DISP_FGND_BLUE + DISP_BGND_LIGHT_GRAY);
+		}
+		else if (VALUE > 0) {	
+			for (y = div5[UP] + 1; y <= div5[BOTTOM]; y++) PC_DispStr(div5[LEFT], y, "▶", DISP_FGND_GREEN + DISP_BGND_LIGHT_GRAY); 
+			PC_DispStr(div3[LEFT] + 2, div3[UP] + 1, "R　▶", DISP_FGND_GREEN + DISP_BGND_LIGHT_GRAY);
+			sprintf(s, "%d m/s", VALUE);
+			PC_DispStr(div3[LEFT] + 2, div3[UP] + 2, s, DISP_FGND_GREEN + DISP_BGND_LIGHT_GRAY);
+		}
+		else {
+			for (y = div5[UP] + 1; y <= div5[BOTTOM]; y++) PC_DispStr(div5[LEFT], y, "◀", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+			PC_DispStr(div3[LEFT] + 2, div3[UP] + 1, "L　◀", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+			sprintf(s, "%d m/s", VALUE);
+			PC_DispStr(div3[LEFT] + 2, div3[UP] + 2, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+		}
+		for(i=1;i<LENGTH;i++) {
 
 
 			temp[0] = AirPollutant[i].Large;
@@ -364,7 +413,7 @@ void taskDisplay(void *pdata) {
 			//PC_DispStr(div1[LEFT]+2,y,"■", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY );
 //			printf("%dm, temp[0] : %d\t, temp[1]:%d\t, temp[2]:%d\n", i,temp[0],temp[1],temp[2]);
 //			for(j=0;j>30000000;j++);				
-			
+
 			for(j=temp[0];j>0;j--,y++) {
 				PC_DispStr(div1[LEFT]+2+i*2,y,"■", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY); 
 			}
@@ -374,13 +423,55 @@ void taskDisplay(void *pdata) {
 			for(j=temp[2];j>0;j--,y++) {
 				PC_DispStr(div1[LEFT]+2+i*2,y,"■", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY); 
 			}
-	
 			
+			sprintf(s, "통합지수 : %d percent \n\t\t\t\t\t\t황사 농도 : %d percent \n\t\t\t\t\t\t미세먼지 농도 : %d percent \n\t\t\t\t\t\t초미세먼지 농도 : %d percent", calc, lar, mid, sml);
+			PC_DispStr(div2[LEFT] + 7, div2[UP] + 5, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+			per = (calc * 14) / 100;
+			for (j = 0; j < per; j++){
+				if (calc < 25){
+					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 1, "●", DISP_FGND_WHITE + DISP_BGND_LIGHT_GRAY);
+					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 2, "●", DISP_FGND_WHITE + DISP_BGND_LIGHT_GRAY);
+				}
+				else if (calc < 50){
+					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 1, "●", DISP_FGND_CYAN + DISP_BGND_LIGHT_GRAY);
+					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 2, "●", DISP_FGND_CYAN + DISP_BGND_LIGHT_GRAY);
+				}
+				else if (calc < 75){
+					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 1, "●", DISP_FGND_YELLOW + DISP_BGND_LIGHT_GRAY);
+					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 2, "●", DISP_FGND_YELLOW + DISP_BGND_LIGHT_GRAY);
+				}
+				else {
+					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 1, "●", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+					PC_DispStr(div4[LEFT] + 2 + j * 2, div4[UP] + 2, "●", DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+				}
+			}
+					
+			
+
 		
 		}
 		OSSchedUnlock();
 	}
 
+}
+
+void Calc(void *data){
+
+	void *msg;
+	INT8U err;
+	INT8U temp[3];
+
+	for (;;) {
+		msg = OSQPend(msg_q, 0, &err); 
+		if (msg != 0)
+		{
+			lar = AirPollutant[10].Large * (100/12);
+			mid = AirPollutant[10].Middle *(100 / 12);
+			sml = AirPollutant[10].Small * (100 / 12);
+			calc = lar + mid + sml;
+			OSTaskResume(testPrior - 2);
+		}
+	}
 }
 
 
