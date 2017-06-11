@@ -1,12 +1,12 @@
 /*
 *****************************************************************************
                   Embedded System S/W Design, Spring 2017
-    Team : "ï¿½ï¿½ ï¿½Ì¸ï¿½"
-    Title :  "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ "
+    Team : ""
+    Title :  ""
     Stu No :  2012722002
               2012722041
 
-          Copyright (c) 2017, "ï¿½ï¿½ ï¿½Ì¸ï¿½" Copyright Holder All Rights Reserved.
+          Copyright (c) 2017, "" Copyright Holder All Rights Reserved.
 *****************************************************************************
 */
 
@@ -24,7 +24,7 @@
 *****************************************************************************
                                   CONSTANTS
     Description :
-    ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å©ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½×¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½Úµï¿½, ï¿½ï¿½ï¿½Ì¾Æ¿ï¿½
+    
 *****************************************************************************
 */
 #define TASK_STK_SIZE 512
@@ -37,6 +37,7 @@
 #define BOTTOM        3
 
 #define LENGTH				11
+#define DENSITY			13
 
 #define BLACK					DISP_FGND_BLACK
 #define YELLOW				DISP_FGND_YELLOW
@@ -55,9 +56,9 @@ OS_EVENT *sem;
 
 INT8U   div1[4] = { 1,  39,   4,  21};
 INT8U   div2[4] = {41,  79,   4,  21};
-INT8U   div3[4] = {33,  39,  18,  21};
+INT8U   div3[4] = {32,  39,  18,  21};
 INT8U   div4[4] = { 1,  33,  18,  21};
-INT8U   div5[4] = { 2,   2,   4,  17};
+INT8U   div5[4] = { 3,   3,   4,  17};
 
 typedef struct {
 	// INT8U color;
@@ -95,10 +96,11 @@ void fillZero(INT8U from, INT8U to);
 
 int main (void)
 {
-  OSInit();
+	OSInit();
+	TaskStartDispInit();
 	TaskCreate();
-  OSStart();
-  return 0;
+	OSStart();
+	return 0;
 }
 
 
@@ -112,13 +114,14 @@ int main (void)
 void TaskCreate(void) {
 
 	/*
-		1.í™”ë©´ ì´ˆê¸°í™”
-		2.ë°”ëŒ ë°©í–¥/ì„¸ê¸°ë¥¼ ëœë¤ìœ¼ë¡œ ìƒì„±í•˜ëŠ” íƒœìŠ¤í¬
-		3.ì´ˆë§ˆë‹¤ ëœë¤ìœ¼ë¡œ ëŒ€ê¸° ê°’ì„ ìƒì„±í•˜ëŠ” íƒœìŠ¤í¬
-		4.êµ¬ì¡°ì²´ë¥¼ ì—…ë°ì´íŠ¸í•˜ëŠ” íƒœìŠ¤í¬
-		5.ì„ í˜•ì‹ ì—…ë°ì´í‹‘ í•˜ëŠ” íƒœìŠ¤í¬(ê°’ê³„ì‚°)
-		6.êµ¬ì¡°ì²´ ì •ë³´ë¥¼ í™”ë©´ì— ì—…ë°ì´íŠ¸ í•˜ëŠ” íƒœìŠ¤í¬
-
+		1.È­¸é ÃÊ±âÈ­
+		2.¹Ù¶÷ ¹æÇâ/¼¼±â¸¦ ·£´ıÀ¸·Î »ı¼ºÇÏ´Â ÅÂ½ºÅ©
+		3.ÃÊ¸¶´Ù ·£´ıÀ¸·Î ´ë±â °ªÀ» »ı¼ºÇÏ´Â ÅÂ½ºÅ©
+		4.±¸Á¶Ã¼¸¦ ¾÷µ¥ÀÌÆ®ÇÏ´Â ÅÂ½ºÅ©
+		5.¼±Çü½Ä ¾÷µ¥ÀÌºz ÇÏ´Â ÅÂ½ºÅ©(°ª°è»ê)
+		6.±¸Á¶Ã¼ Á¤º¸¸¦ È­¸é¿¡ ¾÷µ¥ÀÌÆ® ÇÏ´Â ÅÂ½ºÅ©
+		7. »ç¿ëÀÚ·ÎºÎÅÍ °ªÀ» ÀÔ·Â¹Ş´Â ÅÂ½ºÅ©
+		8.
 	*/
 
 	sem = OSSemCreate(1);
@@ -142,12 +145,12 @@ void TaskCreate(void) {
 	);
 
 
-	// OSTaskCreate(
-	// 	testRoutine,
-	// 	(void *)0,
-	// 	&testStk[TASK_STK_SIZE - 1],
-	// 	testPrior
-	// );
+//	OSTaskCreate(
+//		testRoutine,
+	//	(void *)0,
+		//&testStk[TASK_STK_SIZE - 1],
+		//testPrior+4
+	//);
 	//
 	// OSTaskCreate(
 	// 	testRoutine2,
@@ -164,35 +167,44 @@ static void TaskStartDispInit(void) {
 	PC_DispClrScr(DISP_BGND_LIGHT_GRAY);
 
 	//draw the layout - div1
-	for(x=div1[LEFT]+1; x<div1[RIGHT]; x++) PC_DispStr(x, div1[UP], "-", initColor);
+	//for(x=div1[LEFT]+1; x<div1[RIGHT]; x++) 
+	PC_DispStr(div1[LEFT]+1, div1[UP], "¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª", initColor);
 	for(y=div1[UP]+1; y<div1[BOTTOM]; y++) {
-		PC_DispStr(div1[LEFT],  y, "|", initColor);
-		PC_DispStr(div1[RIGHT], y, "|", initColor);
-	} for(x=div1[LEFT]+1; x<div1[RIGHT]; x++) PC_DispStr(x, div1[BOTTOM], "-", initColor);
+		PC_DispStr(div1[LEFT],  y, "£ü", initColor);
+		PC_DispStr(div1[RIGHT], y, "£ü", initColor);
+	} 
+	//for(x=div1[LEFT]+1; x<div1[RIGHT]; x++) PC_DispStr(x, div1[BOTTOM], "£ş", initColor);
+	PC_DispStr(div1[LEFT]+1, div1[BOTTOM], "¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª", initColor);
 
 	//draw the layout - div2
-	for(x=div2[LEFT]+1; x<div2[RIGHT]; x++) PC_DispStr(x, div2[UP], "-", initColor);
+	//for(x=div2[LEFT]+1; x<div2[RIGHT]; x++) 
+	PC_DispStr(div2[LEFT]+1, div2[UP], "¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª", initColor);
 	for(y=div2[UP]+1; y<div2[BOTTOM]; y++) {
-		PC_DispStr(div2[LEFT],  y, "|", initColor);
-		PC_DispStr(div2[RIGHT], y, "|", initColor);
-	} for(x=div2[LEFT]+1; x<div2[RIGHT]; x++) PC_DispStr(x, div2[BOTTOM], "-", initColor);
+		PC_DispStr(div2[LEFT],  y, "£ü", initColor);
+		PC_DispStr(div2[RIGHT], y, "£ü", initColor);
+	} 
+	//for(x=div2[LEFT]+1; x<div2[RIGHT]; x++) PC_DispStr(x, div2[BOTTOM], "£ş", initColor);
+	PC_DispStr(div2[LEFT]+1, div1[BOTTOM], "¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª", initColor);
 
 	//draw the layout - div3
-	for(x=div3[LEFT]+1; x<div3[RIGHT]; x++) PC_DispStr(x, div3[UP], "-", initColor);
+	for(x=div3[LEFT]+1; x<div3[RIGHT]; x++) PC_DispStr(x, div3[UP], "¡ª", initColor);
 	for(y=div3[UP]+1; y<div3[BOTTOM]; y++) {
-		PC_DispStr(div3[LEFT],  y, "|", initColor);
+		PC_DispStr(div3[LEFT],  y, "£ü", initColor);
 	}
-	PC_DispStr(div3[LEFT]+1, div3[UP]+1, "R", initColor);
-	PC_DispStr(div3[LEFT]+3, div3[UP]+2, "m/s", initColor);
+	PC_DispStr(div3[LEFT]+2, div3[UP]+1, "R¡¡¢º", initColor);
+	PC_DispStr(div3[LEFT]+2, div3[UP]+2, "10m/s", initColor);
 
 	//draw the layout - div4
-	for(x=div4[LEFT]+1; x<div4[RIGHT]; x++) PC_DispStr(x, div4[UP], "-", initColor);
-	for(y=div4[UP]+1; y<div4[BOTTOM]; y++) {
-		for(x=div4[LEFT]+2; x<div4[RIGHT]-1; x++) PC_DispStr(x, y, "*", initColor);
-	}
+	//for(x=div4[LEFT]+1; x<div4[RIGHT]; x++) PC_DispStr(x, div4[UP], "¡ª", initColor);
+	PC_DispStr(div4[LEFT]+1, div4[UP], "¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª", initColor);
+	//for(y=div4[UP]+1; y<div4[BOTTOM]; y++) {
+	//	for(x=div4[LEFT]+2; x<div4[RIGHT]-1; x++) PC_DispStr(x, y, "¡Û", initColor);
+	//}
+	PC_DispStr(div4[LEFT]+2, div4[UP]+1, "¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û", initColor);
+	PC_DispStr(div4[LEFT]+2, div4[UP]+2, "¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û¡Û", initColor);
 
 	//draw the layout - div5
-	for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"->", initColor);
+	for(y=div5[UP]+1;y<=div5[BOTTOM];y++) PC_DispStr(div5[LEFT],y,"¢º", initColor);
 }
 
 void fillZero(INT8U from, INT8U to) {
@@ -208,10 +220,10 @@ void fillZero(INT8U from, INT8U to) {
 *****************************************************************************
                         TASK - Generate Random Wind
     Description :	This task is a task to automatically generate wind
-									using rand() function.
-
-									If the value is negative, it is the east wind.
-									If the value is positive, it is the west wind.
+					using rand() function.
+					
+					If the value is negative, it is the east wind.
+					If the value is positive, it is the west wind.
 *****************************************************************************
 */
 void generateWind(void *pdata) {
@@ -225,7 +237,6 @@ void generateWind(void *pdata) {
 		// VALUE = rand()%2? VALUE : -VALUE;
 		VALUE = rand()%3;
 		VALUE = rand()%3? VALUE : -VALUE;
-
 		printf("[Generate Random Wind]\n\tvalue is %d\n", VALUE);
 		OSTimeDly(2);
 		OSSemPost(sem);
@@ -247,7 +258,7 @@ void generateAirPollution(void *pdata) {
 
 	for(;;) {
 		OSSemPend(sem,0,&err);
-		remain = rand()%LENGTH;
+		remain = rand()%DENSITY;
 		if(remain) {
 			AirPollutant[0].Large = rand()%remain;
 			remain -= AirPollutant[0].Large;
@@ -280,7 +291,7 @@ void updateStructure(void *pdata) {
 	INT8U i,_VALUE;
 	for(;;) {
 		OSTaskSuspend(OS_PRIO_SELF);
-		printf("[UpdateSRandomAirPollution] VALUE is : %d\n", VALUE);
+		printf("[UpdateTheAirPollution] VALUE is : %d\n", VALUE);
 
 		if(VALUE>0) {
 			for(i=LENGTH-1; i>=VALUE; i--) AirPollutant[i] = AirPollutant[i-VALUE];
@@ -291,7 +302,6 @@ void updateStructure(void *pdata) {
 			for(i=0; i<LENGTH-_VALUE; i++) AirPollutant[i] = AirPollutant[i+_VALUE];
 			fillZero(LENGTH-_VALUE-1,LENGTH);
 		}
-
 
 		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Large); printf("\n");
 		 for(i=0;i<LENGTH;i++) printf("%d\t", AirPollutant[i].Middle); printf("\n");
@@ -330,7 +340,7 @@ void testRoutine(void *data) {
         PC_DispStr(0,0,"inserted 5", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
       }
     }
-	OSTimeDly(1);
+//	OSTimeDly(1);
   }
 }
 
