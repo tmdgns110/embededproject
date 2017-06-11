@@ -62,7 +62,7 @@ OS_STK	DispStk[TASK_STK_SIZE];
 OS_STK CalStk[TASK_STK_SIZE];
 OS_STK LogStk[TASK_STK_SIZE];
 OS_STK AlertStk[TASK_STK_SIZE];
-
+OS_STK InitStk[TASK_STK_SIZE];
 
 OS_EVENT *sem;
 OS_EVENT *msg_q; 
@@ -111,6 +111,7 @@ void taskDisplay(void *pdata);
 void Calc(void *pdata);
 void LogTask(void*pdata);
 void AlertTask(void*pdata);
+void InitTask(void*pdata);
 
 void fillZero(INT8U from, INT8U to);
 /*
@@ -205,6 +206,12 @@ void TaskCreate(void) {
 		&testStk[TASK_STK_SIZE - 1],
 		testPrior-6
 	);
+	OSTaskCreate(
+		InitTask,
+		NULL,
+		&InitStk[TASK_STK_SIZE - 1],
+		testPrior - 7
+		);
 	//
 	// OSTaskCreate(
 	// 	testRoutine2,
@@ -649,10 +656,21 @@ void testRoutine(void *data) {
       } else if(key == 80) {
         PC_DispStr(0,0,"DOWN", DISP_FGND_BLACK + DISP_BGND_LIGHT_GRAY);
 		if(dens) dens--;
-      }
+	  }
+	  else if (key == 26){
+		  OSTaskResume(testPrior - 7);
+	  }
     }
 	OSTimeDlyHMSM(0,0,1,0);
   }
+}
+
+void InitTask(void *data){
+
+	for (;;) {
+		OSTaskSuspend(OS_PRIO_SELF);
+		fillZero(0, LENGTH);
+	}
 }
 
 
