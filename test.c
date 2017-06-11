@@ -19,6 +19,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "includes.h"
 #include <time.h>
+#include"Windows.h"
+#include"MMSystem.h"
+#include "stdlib.h"  // _MAX_PATH, free()
+#include "direct.h"  // _getcwd()
+
+#pragma comment(lib,"Winmm.lib")
+
 
 /*
 *****************************************************************************
@@ -55,6 +62,7 @@ OS_STK	UptStk[TASK_STK_SIZE];
 OS_STK	DispStk[TASK_STK_SIZE];
 OS_STK CalStk[TASK_STK_SIZE];
 OS_STK LogStk[TASK_STK_SIZE];
+OS_STK AlertStk[TASK_STK_SIZE];
 
 OS_EVENT *sem;
 OS_EVENT *msg_q; 
@@ -99,6 +107,8 @@ void updateStructure(void *pdata);
 void taskDisplay(void *pdata);
 void Calc(void *pdata);
 void LogTask(void*pdata);
+void AlertTask(void*pdata);
+
 void fillZero(INT8U from, INT8U to);
 /*
 *****************************************************************************
@@ -166,22 +176,26 @@ void TaskCreate(void) {
 		taskDisplay,
 		NULL,
 		&DispStk[TASK_STK_SIZE-1],
-		testPrior-2
+		testPrior-3
 	);
 	OSTaskCreate(
 		Calc,
 		NULL,
 		&CalStk[TASK_STK_SIZE - 1],
-		testPrior -3
+		testPrior -4
 	);
 	OSTaskCreate(
 		LogTask,
 		NULL,
 		&LogStk[TASK_STK_SIZE - 1],
-		testPrior - 4
-
-
+		testPrior - 5
 	);
+	OSTaskCreate(
+		AlertTask,
+		NULL,
+		&LogStk[TASK_STK_SIZE - 1],
+		testPrior - 2
+		);
 
 //	OSTaskCreate(
 //		testRoutine,
@@ -478,7 +492,7 @@ void Calc(void *data){
 			mid = AirPollutant[10].Middle *(100 / 12);
 			sml = AirPollutant[10].Small * (100 / 12);
 			calc = lar + mid + sml;
-			OSTaskResume(testPrior - 2);
+			OSTaskResume(testPrior - 3);
 		}
 	}
 }
@@ -495,6 +509,7 @@ void LogTask(void *pdata)
 		msg = OSQPend(msg_q, 0, &err); // (8)
 		if (msg != 0)
 		{
+			OSSchedLock();
 			lar = AirPollutant[10].Large * (100 / 12);
 			mid = AirPollutant[10].Middle *(100 / 12);
 			sml = AirPollutant[10].Small * (100 / 12);
@@ -504,6 +519,65 @@ void LogTask(void *pdata)
 				fprintf(log, "%s", s); // (9)
 				fflush(log);
 			}
+			OSSchedUnlock();
+		}
+	}
+}
+
+void AlertTask(void *pdata)
+{
+
+	void *msg;
+	INT8U err;
+	INT8U temp[3];
+	char s[80];
+	char s1[80];
+	char currentPath[_MAX_PATH];
+	for (;;) {
+		msg = OSQPend(msg_q, 0, &err); // (8)
+		if (msg != 0)
+		{
+			lar = AirPollutant[10].Large * (100 / 12);
+			mid = AirPollutant[10].Middle *(100 / 12);
+			sml = AirPollutant[10].Small * (100 / 12);
+
+	
+			_getcwd(currentPath, _MAX_PATH);
+			sprintf(s1, "%s\\55.wav", currentPath);
+			if (lar > 50){
+				sprintf(s, "황사 주의보 발령");
+				PC_DispStr(div2[LEFT] + 7, div2[UP] + 12, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+				sndPlaySoundA(s1, SND_ASYNC | SND_NODEFAULT);
+
+			}
+			else if (lar > 70){
+				sprintf(s, "황사 경보 발령");
+				PC_DispStr(div2[LEFT] + 7, div2[UP] + 12, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+				sndPlaySoundA(s1, SND_ASYNC | SND_NODEFAULT);
+			}
+			else if (mid > 50){
+				sprintf(s, "미세먼지 주의보 발령");
+				PC_DispStr(div2[LEFT] + 7, div2[UP] + 12, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+				sndPlaySoundA(s1, SND_ASYNC | SND_NODEFAULT);
+			}
+			else if (mid > 70){
+				sprintf(s, "미세먼지 경보 발령");
+				PC_DispStr(div2[LEFT] + 7, div2[UP] + 12, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+				sndPlaySoundA(s1, SND_ASYNC | SND_NODEFAULT);
+			}
+			else if (sml > 50){
+				sprintf(s, "초미세먼지 주의보 발령");
+				PC_DispStr(div2[LEFT] + 7, div2[UP] + 12, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+				sndPlaySoundA(s1, SND_ASYNC | SND_NODEFAULT);
+			}
+			else if (sml > 70){
+				sprintf(s, "초미세먼지 경보 발령");
+				PC_DispStr(div2[LEFT] + 7, div2[UP] + 12, s, DISP_FGND_RED + DISP_BGND_LIGHT_GRAY);
+				sndPlaySoundA(s1, SND_ASYNC | SND_NODEFAULT);
+			
+			}
+	
+
 		}
 	}
 }
